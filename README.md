@@ -29,14 +29,24 @@ Or you could skip rewriting your production code and use FakeTickers:
 
     import "github.com/allenluce/faketickers"
 
-    ft := faketickers.FakeTickers{}
-    ft.Start()
+    ft := faketickers.NewFakeTicker()
     go tickloop()
     ft.Wait(1) // Make sure time.NewTicker() was called
     ft.Tick()
 
 Now you can be assured that your RunReportCode() will be called quickly and only
 once.
+
+You can also set all tickers to tick as fast as possible:
+
+    ft := faketickers.NewFakeTicker(true)
+
+When done, it's best to stop the tickers (to avoid hangs/panics):
+
+    ft.Stop()
+
+This turns off any fake tickers and restores the system ticker
+facilities.
 
 FakeTickers operates by replacing time.NewTicker() with its own routine. This
 new routine hands out specially constructed ticker objects that give you control

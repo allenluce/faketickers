@@ -104,6 +104,19 @@ var _ = Describe("Faketicker", func() {
 		Eventually(done).Should(Receive(BeTrue()))
 		wg.Wait()
 	})
+	It("ticks immediately with an immediate argument", func() {
+		ft := NewFakeTicker(true)
+		defer ft.Stop()
+		done := make(chan bool, 1)
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			Ω(tickingRoutine(done)).Should(BeTrue())
+		}()
+		Eventually(done).Should(Receive(BeTrue()))
+		wg.Wait()
+	})
 })
 
 // Ginkgo boilerplate, this runs all tests in this package

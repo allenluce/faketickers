@@ -58,11 +58,25 @@ type taggedTicker struct {
 	Ticker *chan time.Time
 }
 
+// FakeTickers provides a flexible ticker system.
 type FakeTickers struct {
 	tickers   []taggedTicker
 	guard     *monkey.PatchGuard
 	tag       string
 	tickerMut sync.Mutex
+	immediate bool
+	done      chan interface{}
+	wg        *sync.WaitGroup
+}
+
+// NewFakeTicker creates and starts the fake tickers
+func NewFakeTicker(immediate ...bool) *FakeTickers {
+	ft := &FakeTickers{}
+	if len(immediate) > 0 {
+		ft.immediate = immediate[0]
+	}
+	ft.Start()
+	return ft
 }
 
 func (t *FakeTickers) newTicker(d time.Duration) *time.Ticker {
@@ -72,12 +86,28 @@ func (t *FakeTickers) newTicker(d time.Duration) *time.Ticker {
 	c := make(chan time.Time)
 	ticker.C = c
 	t.tickers = append(t.tickers, taggedTicker{Tag: t.tag, Ticker: &c})
+	if t.immediate { // Tick quickly and forever.
+		t.wg.Add(1)
+		go func(c chan time.Time) {
+			for {
+				now := time.Now()
+				select {
+				case <-t.done: // Exit when closed.
+					t.wg.Done()
+					return
+				case c <- now: // Endless ticks
+				}
+			}
+		}(c)
+	}
 	return &ticker
 }
 
 // Start initializes the fake tickers and replaces time.NewTicker()
 // with its own routine.
 func (t *FakeTickers) Start() {
+	t.done = make(chan interface{})
+	t.wg = &sync.WaitGroup{}
 	t.guard = monkey.Patch(time.NewTicker, t.newTicker)
 	t.tickers = []taggedTicker{}
 }
@@ -107,6 +137,8 @@ func (t *FakeTickers) Tag(tag string) {
 // Stop closes all the existing ticker channels and restores
 // time.NewTicker to the system default.
 func (t *FakeTickers) Stop() {
+	close(t.done)
+	t.wg.Wait()
 	t.guard.Unpatch()
 	for _, ticker := range t.tickers {
 		close(*ticker.Ticker)
@@ -116,7 +148,7 @@ func (t *FakeTickers) Stop() {
 const pollingInterval = time.Millisecond * 10
 
 // Wait blocks until the total number of calls to NewTicker is equal
-// or greater than minTickers or until timeout.  Use  when you don't want to
+// or greater than minTickers or until timeout.  Use when you don't want to
 // proceed until the intended code has its ticker(s) set up.
 func (t *FakeTickers) Wait(minTickers int, timeoutInterval ...time.Duration) error {
 	var timeout <-chan time.Time
