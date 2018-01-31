@@ -166,3 +166,22 @@ func (t *FakeTickers) Wait(minTickers int, timeoutInterval ...time.Duration) err
 		}
 	}
 }
+
+// Sleeper stores the state of the old time.Sleep call for restoration
+// with Stop()
+type Sleeper struct {
+	guard *monkey.PatchGuard
+}
+
+// InstantSleeps makes time.Sleep() return instantly, no matter what
+// the duration.
+func InstantSleeps() *Sleeper {
+	s := &Sleeper{}
+	s.guard = monkey.Patch(time.Sleep, func(time.Duration) {})
+	return s
+}
+
+// Stop restores the normal functioning of time.Sleep
+func (s *Sleeper) Stop() {
+	s.guard.Unpatch()
+}

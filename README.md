@@ -55,6 +55,13 @@ over time.
 Note that FakeTickers must be initialized before the call to time.NewTicker() --
 it'll only hand out fake tickers then, not replace existing tickers.
 
+You can also make `time.Sleep()` calls of any duration take no time at all:
+
+    p := faketickers.InstantSleeps()
+    time.Sleep(time.Hour * 876000) // Instant.
+    p.Stop()
+    time.Sleep(time.Hour * 876000) // Waits 100 years.
+
 ## Usage
 
 #### type FakeTickers

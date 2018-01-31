@@ -119,6 +119,15 @@ var _ = Describe("Faketicker", func() {
 	})
 })
 
+var _ = Describe("InstantSleeps", func() {
+	It("makes a long time.Sleep take no time at all.", func(done Done) {
+		p := InstantSleeps()
+		time.Sleep(time.Hour)
+		p.Stop()
+		close(done)
+	})
+})
+
 // Ginkgo boilerplate, this runs all tests in this package
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
