@@ -50,7 +50,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bouk/monkey"
+	"bou.ke/monkey"
 )
 
 type taggedTicker struct {

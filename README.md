@@ -2,14 +2,16 @@
 
     go get "github.com/allenluce/faketickers"
 
-Package faketickers provides a way to control time.Ticker objects from test code
-without requiring modifications of the code under test.
+FakeTickers control time within your Go production code. The
+FakeTicker control system gives you direct control over objects
+produced by `time.NewTicker()` so you can test code without modifying
+the code under test.
 
-This is super-handy when you want to make a ticker work faster than it normally
-would in production code or when you want to make sure your test has things set
-up properly before a production goroutine ticks.
+This is useful for when you want to make a ticker work faster than it
+normally would in production code. And when you want to make sure your
+test has things set up properly before a production goroutine ticks.
 
-Say you have this bit of production code:
+Consider this example of production code:
 
     func tickloop() {
     	ticker := time.NewTicker(time.Minute * 15)
@@ -19,13 +21,16 @@ Say you have this bit of production code:
     	}
     }
 
-You could test this by rewriting tickloop() to take a a shorter duration as an
-argument. You'd then have to hope that testing finishes before the next tick. Or
-you could have it take a ticker object as an argument and control that from your
-tests. Or you could have it take an optional channel and select on both the
-ticker and channel for testing.
+Since you don't want to wait fifteen minutes for a test to run you
+might rewrite `tickloop()` to accept a duration as an argument and
+then pass in a shorter duration for `time.NewTicker()` (although now
+you'll have to hope that testing finishes before the next tick
+occurs). Another option is to pass in a test-controlled ticker object.
+Or pass in an optional channel and select on both the ticker and
+channel for testing.
 
-Or you could skip rewriting your production code and use FakeTickers:
+Or you could avoid messing with your production code at all and and
+instead use FakeTickers:
 
     import "github.com/allenluce/faketickers"
 
@@ -34,28 +39,31 @@ Or you could skip rewriting your production code and use FakeTickers:
     ft.Wait(1) // Make sure time.NewTicker() was called
     ft.Tick()
 
-Now you can be assured that your RunReportCode() will be called quickly and only
-once.
+Now you can be assured that your RunReportCode() will be called
+quickly and only once.
 
-You can also set all tickers to tick as fast as possible:
+FakeTickers lets you make all future tickers tick as fast as possible:
 
     ft := faketickers.NewFakeTicker(true)
 
-When done, it's best to stop the tickers (to avoid hangs/panics):
+When done, stop the tickers to avoid hangs or panics:
 
     ft.Stop()
 
 This turns off any fake tickers and restores the system ticker
 facilities.
 
-FakeTickers operates by replacing time.NewTicker() with its own routine. This
-new routine hands out specially constructed ticker objects that give you control
-over time.
+FakeTickers operates by replacing `time.NewTicker()` with its own
+routine. This new routine hands out specially constructed ticker
+objects that give you control over time.
 
-Note that FakeTickers must be initialized before the call to time.NewTicker() --
-it'll only hand out fake tickers then, not replace existing tickers.
+Note that FakeTickers must be initialized before the call to
+`time.NewTicker()`.  It will only hand out fake tickers after
+initialization. Any previously created tickers will continue to work
+as normal.
 
-You can also make `time.Sleep()` calls of any duration take no time at all:
+The `InstantSleeps()` facility of FakeTickers lets you force
+`time.Sleep()` to take no time at all:
 
     p := faketickers.InstantSleeps()
     time.Sleep(time.Hour * 876000) // Instant.
@@ -77,7 +85,7 @@ type FakeTickers struct {
 ```go
 func (t *FakeTickers) Start()
 ```
-Start initializes the fake tickers and replaces time.NewTicker() with its own
+Start initializes the fake tickers and replaces `time.NewTicker()` with its own
 routine.
 
 #### func (*FakeTickers) Stop
@@ -85,7 +93,7 @@ routine.
 ```go
 func (t *FakeTickers) Stop()
 ```
-Stop closes all the existing ticker channels and restores time.NewTicker to the
+Stop closes all the existing ticker channels and restores `time.NewTicker()` to the
 system default.
 
 #### func (*FakeTickers) Tag
@@ -93,16 +101,16 @@ system default.
 ```go
 func (t *FakeTickers) Tag(tag string)
 ```
-Tag sets the given string tag on all subsequent NewTicker() calls. Set a tag
-before a NewTicker() call when you want to control that ticker separately.
+Tag sets the given string tag on all subsequent `time.NewTicker()` calls. Set a tag
+before a `time.NewTicker()` call when you want to control that ticker separately.
 
 #### func (*FakeTickers) Tick
 
 ```go
 func (t *FakeTickers) Tick(tag ...string)
 ```
-Tick will send one tick down all tickers created since Start() was called. If
-given the optional tag argument, it will only send ticks to those NewTickers
+Tick will send one tick to all tickers created since `Start()` was called. If
+given the optional tag argument, it will only send ticks to those tickers
 that have that tag.
 
 #### func (*FakeTickers) Wait
@@ -110,6 +118,7 @@ that have that tag.
 ```go
 func (t *FakeTickers) Wait(minTickers int, timeoutInterval ...time.Duration) error
 ```
-Wait blocks until the total number of calls to NewTicker is equal or greater
-than minTickers or until timeout. Use when you don't want to proceed until the
-intended code has its ticker(s) set up.
+Wait blocks until the total number of calls to NewTicker is equal or
+greater than `minTickers` or until `timeout` expires. Use this when
+you don't want to proceed until the intended code has its ticker(s)
+set up.
