@@ -6,7 +6,7 @@ import (
 	"time"
 
 	. "github.com/allenluce/faketickers"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -120,11 +120,12 @@ var _ = Describe("Faketicker", func() {
 })
 
 var _ = Describe("InstantSleeps", func() {
-	It("makes a long time.Sleep take no time at all.", func(done Done) {
+	It("forces a long time.Sleep to take no time at all.", func() {
+		start := time.Now()
 		p := InstantSleeps()
 		time.Sleep(time.Hour)
 		p.Stop()
-		close(done)
+		Ω(time.Now()).Should(BeTemporally("~", start, time.Minute*10))
 	})
 })
 
